@@ -146,7 +146,7 @@ def main():
     batch_size = 10000
     layers = [3] + 10*[4*50] + [4]
     lr = 1e-3
-    epochs = 100
+    epochs = 10
     
     model = HFM(data, c_data, eqns, layers, Pec = 100, Rey = 100)
     model.train(epochs, batch_size, lr)
@@ -167,10 +167,10 @@ def main():
     c_pred, u_pred, v_pred, p_pred = model.predict(t_test, x_test, y_test)
     
     # Error
-    error_c = relative_error(c_pred, c_test)
-    error_u = relative_error(u_pred, u_test)
-    error_v = relative_error(v_pred, v_test)
-    error_p = relative_error(p_pred - np.mean(p_pred), p_test - np.mean(p_test))
+    error_c = relative_error(c_pred, torch.from_numpy(c_test).float())
+    error_u = relative_error(u_pred, torch.from_numpy(u_test).float())
+    error_v = relative_error(v_pred, torch.from_numpy(v_test).float())
+    error_p = relative_error(p_pred - torch.mean(p_pred), torch.from_numpy(p_test - np.mean(p_test)).float())
 
     print('Error c: %e' % (error_c))
     print('Error u: %e' % (error_u))
@@ -179,13 +179,14 @@ def main():
     
     
     ################# Save Data ###########################
-    print("Saving Data.")
+    print("Test and Save Data.")
     
     C_pred = 0*C_star
     U_pred = 0*U_star
     V_pred = 0*V_star
     P_pred = 0*P_star
-    for snap in range(0,t_star.shape[0]):
+    print(t_star.shape[0])
+    for snap in range(0, 10):
         t_test = T_star[:,snap:snap+1]
         x_test = X_star[:,snap:snap+1]
         y_test = Y_star[:,snap:snap+1]
@@ -198,16 +199,16 @@ def main():
         # Prediction
         c_pred, u_pred, v_pred, p_pred = model.predict(t_test, x_test, y_test)
         
-        C_pred[:,snap:snap+1] = c_pred
-        U_pred[:,snap:snap+1] = u_pred
-        V_pred[:,snap:snap+1] = v_pred
-        P_pred[:,snap:snap+1] = p_pred
+        C_pred[:,snap:snap+1] = c_pred.detach().numpy()
+        U_pred[:,snap:snap+1] = u_pred.detach().numpy()
+        V_pred[:,snap:snap+1] = v_pred.detach().numpy()
+        P_pred[:,snap:snap+1] = p_pred.detach().numpy()
     
         # Error
-        error_c = relative_error(c_pred, c_test)
-        error_u = relative_error(u_pred, u_test)
-        error_v = relative_error(v_pred, v_test)
-        error_p = relative_error(p_pred - np.mean(p_pred), p_test - np.mean(p_test))
+        error_c = relative_error(c_pred, torch.from_numpy(c_test).float())
+        error_u = relative_error(u_pred, torch.from_numpy(u_test).float())
+        error_v = relative_error(v_pred, torch.from_numpy(v_test).float())
+        error_p = relative_error(p_pred - torch.mean(p_pred), torch.from_numpy(p_test - np.mean(p_test)).float())
     
         print('Error c: %e' % (error_c))
         print('Error u: %e' % (error_u))
