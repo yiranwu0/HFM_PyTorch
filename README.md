@@ -1,5 +1,6 @@
 # HFM_PyTorch
-An alternate version of HFM code with PyTorch.
+An alternate version of HFM code with PyTorch. 
+Right now only utilities and Cylinder2D_flower.py are presented.
 
 Original Repository is [Hidden Fluid Mechanics](https://github.com/maziarraissi/HFM).
 
