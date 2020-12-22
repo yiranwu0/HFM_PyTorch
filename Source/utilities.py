@@ -1,6 +1,7 @@
 import numpy as np
 import torch.nn as nn
-import torch.nn.functional as F
+import sys
+import torch
 
 loss = nn.MSELoss()
 
@@ -90,7 +91,3 @@ def Navier_Stokes_2D(c, u, v, p, txy, Pec, Rey):
     e4 = u_x + v_y
     
     return e1, e2, e3, e4
-
-
-
-# check

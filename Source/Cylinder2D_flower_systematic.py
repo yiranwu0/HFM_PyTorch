@@ -9,6 +9,8 @@ from torch.optim import Adam
 import torch.nn.functional as F
 from torch.autograd import Variable
 
+from utilities import neural_net, Navier_Stokes_2D, \
+                       mean_squared_error, relative_error
 
 class HFM(object):
     # notational conventions
@@ -57,33 +59,9 @@ class HFM(object):
         
         return loss
 
+
         
-    def test(self, T_star, X_star, Y_star, C_star, U_star, V_star, P_star):
-        snap = np.array([100])
-        t_test = T_star[:,snap]
-        x_test = X_star[:,snap]
-        y_test = Y_star[:,snap]
-
-        c_test = C_star[:,snap]
-        u_test = U_star[:,snap]
-        v_test = V_star[:,snap]
-        p_test = P_star[:,snap]
-
-            # Prediction
-        c_pred, u_pred, v_pred, p_pred = self.predict(t_test, x_test, y_test)
-
-        error_c = relative_error(c_pred, torch.from_numpy(c_test).float())
-        error_u = relative_error(u_pred, torch.from_numpy(u_test).float())
-        error_v = relative_error(v_pred, torch.from_numpy(v_test).float())
-        error_p = relative_error(p_pred - torch.mean(p_pred), torch.from_numpy(p_test - np.mean(p_test)).float())
-
-        print('Error c: %e' % (error_c))
-        print('Error u: %e' % (error_u))
-        print('Error v: %e' % (error_v))
-        print('Error p: %e' % (error_p))
-        
-        
-    def train(self, epochs, batch_size, lr, T_star, X_star, Y_star, C_star, U_star, V_star, P_star):
+    def train(self, epochs, batch_size, lr):
         optimizer = Adam(self.net.parameters(), lr)
         
         for i in range(epochs):
@@ -92,9 +70,7 @@ class HFM(object):
             loss.backward()
             optimizer.step()
             print("Epochs: " + str(i) + "    Loss: " + str(loss))
-            
-            if(i%100 == 0):
-                self.test(T_star, X_star, Y_star, C_star, U_star, V_star, P_star)
+
     
     def predict(self, t_star, x_star, y_star):
         t = torch.from_numpy(t_star).float()
@@ -107,14 +83,12 @@ class HFM(object):
 
 
 def main():
-    # model parameters
-    batch_size = 10000
-    layers = [3] + 10*[4*50] + [4]
-    lr = 1e-3
-    epochs = 1000
+    ######################################################################
+    ######################## Process Data  ###############################
+    ######################################################################
     
     # Load Data
-    data = scipy.io.loadmat('HFM-master/Data/Cylinder2D_flower.mat')
+    data = scipy.io.loadmat('../Data/Cylinder2D_flower.mat')
     
     t_star = data['t_star'] # T x 1
     x_star = data['x_star'] # N x 1
@@ -133,15 +107,8 @@ def main():
     X_star = np.tile(x_star, (1,T)) # N x T
     Y_star = np.tile(y_star, (1,T)) # N x T
     
-    ######################################################################
-    ######################## Training Data ###############################
-    ######################################################################
-    
-    #T_data = int(sys.argv[1])
-    #N_data = int(sys.argv[2])
-
-    T_data = 201
-    N_data = 15000
+    T_data = int(sys.argv[1])
+    N_data = int(sys.argv[2])
     
     idx_t = np.concatenate([np.array([0]), np.random.choice(T-2, T_data-2, replace=False)+1, np.array([T-1])] )
     idx_x = np.random.choice(N, N_data, replace=False)
@@ -170,13 +137,22 @@ def main():
     data = torch.cat((t_data, x_data, y_data), 1)
     eqns = torch.cat((t_eqns, x_eqns, y_eqns), 1)
     
+    print("Data processed. Start training.")
     
-    # get model and train
+    #################################################################
+    ################# Get Model and train ###########################
+    #################################################################
+    # model parameters
+    batch_size = 10000
+    layers = [3] + 10*[4*50] + [4]
+    lr = 1e-3
+    epochs = 100
+    
     model = HFM(data, c_data, eqns, layers, Pec = 100, Rey = 100)
     model.train(epochs, batch_size, lr)
-
     
-    # Test Data
+    print("Training Finshed. Get an example test error.")
+    # Single Test Data
     snap = np.array([100])
     t_test = T_star[:,snap]
     x_test = X_star[:,snap]
@@ -203,6 +179,7 @@ def main():
     
     
     ################# Save Data ###########################
+    print("Saving Data.")
     
     C_pred = 0*C_star
     U_pred = 0*U_star
@@ -240,8 +217,6 @@ def main():
     scipy.io.savemat('../Results/Cylinder2D_flower_results_%d_%d_%s.mat' %(T_data, N_data, time.strftime('%d_%m_%Y')),
                      {'C_pred':C_pred, 'U_pred':U_pred, 'V_pred':V_pred, 'P_pred':P_pred})
  
-
-
 
 if __name__ == "__main__":
     main()
