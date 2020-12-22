@@ -92,3 +92,5 @@ def Navier_Stokes_2D(c, u, v, p, txy, Pec, Rey):
     return e1, e2, e3, e4
 
 
+
+# check
