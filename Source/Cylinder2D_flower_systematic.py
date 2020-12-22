@@ -28,7 +28,7 @@ class HFM(object):
         # data
         [self.data, self.c_data, self.eqns] = [data, c_data, eqns]
         # physics "uninformed" neural networks
-        self.net = neural_net(self.layers)
+        self.net = neural_net(self.layers, data)
         
     def compute_loss(self, batch_size):
         N_data = self.data.shape[0]
@@ -67,7 +67,7 @@ class HFM(object):
         for i in range(epochs):
             optimizer.zero_grad()
             loss = self.compute_loss(batch_size)
-            loss.backward()
+            loss.backward(retain_graph=True)
             optimizer.step()
             print("Epochs: " + str(i) + "    Loss: " + str(loss))
 
@@ -146,7 +146,7 @@ def main():
     batch_size = 10000
     layers = [3] + 10*[4*50] + [4]
     lr = 1e-3
-    epochs = 10
+    epochs = 100
     
     model = HFM(data, c_data, eqns, layers, Pec = 100, Rey = 100)
     model.train(epochs, batch_size, lr)

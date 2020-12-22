@@ -25,8 +25,11 @@ def swish(x):
     return x * torch.sigmoid(x)
 
 class neural_net(nn.Module):
-    def __init__(self, layer_dim):
+    def __init__(self, layer_dim, X):
         super().__init__()
+        
+        self.X_mean = torch.mean(X, 0, True)
+        self.X_std = torch.std(X, 0, True)
         
         temp = []
         for l in range(1, len(layer_dim)):
@@ -36,6 +39,7 @@ class neural_net(nn.Module):
         sys.stdout.flush()
         
     def forward(self, x):
+        x = (x - self.X_mean) / self.X_std # z-score norm
         for l in self.layers:
             x = swish(l(x))
         return x
