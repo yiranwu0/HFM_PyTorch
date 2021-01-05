@@ -1,9 +1,3 @@
-import numpy as np
-import torch.nn as nn
-import sys
-import torch
-import torch.nn.utils.weight_norm as weight_norm
-
 # modified by Yiran Wu @ Dec 22, 2020
 # Caution: inputs of functions such as neural_net, Navier_Stokes_2D, Gradient_Velocity_2D, etc are changed
 
@@ -12,43 +6,58 @@ import torch.nn.utils.weight_norm as weight_norm
 # that is, input X are always a combined set instead of separate inputs
 # This change is due to the reason that torch.autograd.grad will not accept separate inputs
 
+import numpy as np
+import torch.nn as nn
+import sys
+import torch
+import torch.nn.utils.weight_norm as weight_norm
+from torch.autograd import Variable
 loss = nn.MSELoss()
+
 
 def relative_error(pred, exact):
     if type(pred) is np.ndarray:
         return np.sqrt( mean_squared_error(pred, exact)/np.mean(np.square(exact - np.mean(exact))))
-    
     return torch.sqrt( loss(pred, exact) / torch.mean(torch.square(exact - torch.mean(exact))) )
+
 
 def mean_squared_error(pred, exact):
     if type(pred) is np.ndarray:
         return np.mean(np.square(pred - exact))
     return loss(pred, exact)
 
+
 def fwd_gradients(Y, x):
     dummy = torch.ones_like(Y)
-    G = torch.autograd.grad(Y, x, dummy, create_graph=True)[0]
+    G = torch.autograd.grad(Y, x, dummy, create_graph= True)[0]
     return G
+
 
 def swish(x):
     return x * torch.sigmoid(x)
 
+
 class neural_net(nn.Module):
-    def __init__(self, layer_dim, X):
+    def __init__(self, layer_dim, X, USE_CUDA, device):
         super().__init__()
         
-        self.X_mean = torch.mean(X, 0, True)
-        self.X_std = torch.std(X, 0, True)
+        self.X_mean = Variable(torch.from_numpy(X.mean(0, keepdims=True)).float(), requires_grad = False)
+        self.X_std = Variable(torch.from_numpy(X.std(0, keepdims=True)).float(), requires_grad = False)
+        if(USE_CUDA):
+            self.X_mean = self.X_mean.to(device)
+            self.X_std = self.X_std.to(device)
         
         temp = []
         for l in range(1, len(layer_dim)):
-            temp.append(weight_norm(nn.Linear(layer_dim[l-1], layer_dim[l]), dim = 0))
+            temp.append(nn.Linear(layer_dim[l-1], layer_dim[l]))
+            #temp.append(weight_norm(nn.Linear(layer_dim[l-1], layer_dim[l]), dim = 0))
+            #nn.init.normal_(temp[l-1].weight)
         self.layers = nn.ModuleList(temp)
-        print(self.layers)
-        sys.stdout.flush()
+        #print(self.layers)
+        #sys.stdout.flush()
         
     def forward(self, x):
-        x = (x - self.X_mean) / self.X_std # z-score norm
+        #x = ((x - self.X_mean) / self.X_std) # z-score norm
         for l in self.layers:
             x = swish(l(x))
         return x
@@ -63,7 +72,6 @@ def Navier_Stokes_2D(c, u, v, p, txy, Pec, Rey):
     p_txy = fwd_gradients(p, txy)
     
     #---wanted
-   # print(c_txy)
     c_t = c_txy[:,0:1]
     c_x = c_txy[:,1:2]
     c_y = c_txy[:,2:3]
@@ -80,23 +88,14 @@ def Navier_Stokes_2D(c, u, v, p, txy, Pec, Rey):
     p_y = p_txy[:,2:3]
     #wanted----
     
-    # second gradient
-   # print(c_x)
-   # print(txy)
-    c_x_txy = fwd_gradients(c_x, txy)
-    c_y_txy = fwd_gradients(c_y, txy)
-    c_xx = c_x_txy[:,1:2] #wanted
-    c_yy = c_y_txy[:,2:3] #wanted
+    c_xx = fwd_gradients(c_x, txy)[:,1:2]
+    c_yy = fwd_gradients(c_y, txy)[:,2:3]
     
-    u_x_txy = fwd_gradients(u_x, txy)
-    u_y_txy = fwd_gradients(u_y, txy)
-    u_xx = u_x_txy[:,1:2] #wanted
-    u_yy = u_y_txy[:,2:3] #wanted
+    u_xx = fwd_gradients(u_x, txy)[:,1:2]
+    u_yy = fwd_gradients(u_y, txy)[:,2:3]
     
-    v_x_txy = fwd_gradients(v_x, txy)
-    v_y_txy = fwd_gradients(v_y, txy)
-    v_xx = v_x_txy[:,1:2] #wanted
-    v_yy = v_y_txy[:,2:3] #wanted
+    v_xx = fwd_gradients(v_x, txy)[:,1:2]
+    v_yy = fwd_gradients(v_y, txy)[:,2:3]
     
     e1 = c_t + (u*c_x + v*c_y) - (1.0/Pec)*(c_xx + c_yy)
     e2 = u_t + (u*u_x + v*u_y) + p_x - (1.0/Rey)*(u_xx + u_yy)
@@ -206,6 +205,7 @@ def Navier_Stokes_3D(c, u, v, w, p, txyz, Pec, Rey):
     
     return e1, e2, e3, e4, e5
 
+
 def Gradient_Velocity_3D(u, v, w, txyz):
         
     u_txy = fwd_gradients(u, txyz)
@@ -225,6 +225,7 @@ def Gradient_Velocity_3D(u, v, w, txyz):
     w_z = w_txyz[:,3:4]
     
     return [u_x, v_x, w_x, u_y, v_y, w_y, u_z, v_z, w_z]
+
 
 def Shear_Stress_3D(u, v, w, txyz, nx, ny, nz, Rey):
         
