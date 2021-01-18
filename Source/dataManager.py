@@ -2,6 +2,7 @@ import numpy as np
 from visdom import Visdom
 from scipy.io import savemat
 import torch
+import scipy.io
 
 class dataManager(object):
     
@@ -20,6 +21,22 @@ class dataManager(object):
         self.error_u = np.zeros(0)
         self.error_v = np.zeros(0)
         self.error_p = np.zeros(0)
+        '''
+        # to continue a session
+        data = scipy.io.loadmat('../Results/Cylinder2D_flower_training_error_v10.mat')
+        
+        self.c_loss = data["c_loss"]
+        self.e1_loss = data["e1_loss"]
+        self.e2_loss = data["e2_loss"]
+        self.e3_loss = data["e3_loss"]
+        self.e4_loss = data["e4_loss"]
+        self.total_loss = data["total_loss"]
+            
+        self.error_c = data["error_c"]
+        self.error_u = data["error_u"]
+        self.error_v = data["error_v"]
+        self.error_p = data["error_p"]
+        '''
         
         if(using_visdom):
             self.vis = Visdom()
@@ -69,7 +86,7 @@ class dataManager(object):
         self.e2_loss = np.append(self.e2_loss, e2_loss.numpy())
         self.e3_loss = np.append(self.e3_loss, e3_loss.numpy())
         self.e4_loss = np.append(self.e4_loss, e4_loss.numpy())
-        self.total_loss = np.append(self.total_loss, loss.detach().numpy(), axis = 0)
+        self.total_loss = np.append(self.total_loss, loss.detach().numpy())
     
 
     def update_error(self, error_c, error_u, error_v, error_p, it):

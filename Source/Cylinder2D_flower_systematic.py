@@ -14,7 +14,6 @@ from dataManager import *
 
 
 
-
 class HFM(object):
     # notational conventions
     # _tf: placeholders for input/output data and points used to regress the equations
@@ -34,8 +33,10 @@ class HFM(object):
         self.dm = dataManager(using_visdom, version)
         # physics "uninformed" neural networks
         self.net = neural_net(self.layers, data, USE_CUDA, device)
-        if(USE_CUDA):
-            self.net.to(device)
+        #self.net.load_state_dict(torch.load("../Results/model_updating_v10.pth"))
+        #print("loading v10")
+        self.net.to(device)
+            
             
     
     def compute_loss(self, batch_size, it):
@@ -68,7 +69,7 @@ class HFM(object):
 
 
     def train(self, total_time, batch_size, lr, T_star, X_star, Y_star, C_star, U_star, V_star, P_star):
-        optimizer = Adam(self.net.parameters(), lr)
+        optimizer = Adam(self.net.parameters(), lr=lr)
         
         start_time = time.time()
         running_time = 0
@@ -143,34 +144,32 @@ class HFM(object):
 
 
 
-
-
 ######################################################################
 ######################################################################
 ######################## Args Handling ###############################
 ######################################################################
 
-version = "v5"
+version = "v10"
 print(version)
 
 # system in
 T_data = int(sys.argv[1])
 N_data = int(sys.argv[2])
-device_num = sys.argv[3]
+device_num = sys.argv[3] if len(sys.argv) >= 4 else 0
 using_visdom = False
-if(len(sys.argv) == 5):
+if(len(sys.argv) >= 5):
     using_visdom = (sys.argv[4] == "visdom")
 
 # model parameters
 batch_size = 10000
 layers = [3] + 10*[4*50] + [4]
-lr = 1e-3
+lr = 8e-5
 traing_time = 40
-    
+
 # If cuda is available, use cuda
 USE_CUDA = torch.cuda.is_available()
-print("Using cuda" + str(device_num)) if USE_CUDA else print("Not using cuda.")
-device = torch.device('cuda:' + device_num)
+print("Using cuda " + str(device_num)) if USE_CUDA else print("Not using cuda.")
+device = torch.device('cuda:' + device_num) if USE_CUDA else torch.device('cpu')
 Variable = lambda *args, **kwargs: autograd.Variable(*args, **kwargs).to(device) if USE_CUDA else autograd.Variable(*args, **kwargs)
 
 
@@ -199,8 +198,8 @@ X_star = np.tile(x_star, (1,T)) # N x T
 Y_star = np.tile(y_star, (1,T)) # N x T
     
 
-# T_data -> system in
-# N_data
+# T_data <- system in
+# N_data <- system in
     
 idx_t = np.concatenate([np.array([0]), np.random.choice(T-2, T_data-2, replace=False)+1, np.array([T-1])] )
 idx_x = np.random.choice(N, N_data, replace=False)
@@ -220,18 +219,19 @@ y_eqns = Y_star[:, idx_t][idx_x,:].flatten()[:,None]
 data = np.concatenate((t_data, x_data, y_data), 1)
 eqns = np.concatenate((t_eqns, x_eqns, y_eqns), 1)
     
-#  c_data = Variable(torch.from_numpy(c_data).float(), requires_grad = False)
-#  data = Variable(torch.from_numpy(np.concatenate((t_data, x_data, y_data), 1)).float(), requires_grad = True)
-#  eqns = Variable(torch.from_numpy(np.concatenate((t_eqns, x_eqns, y_eqns), 1)).float(), requires_grad = True)
-    
     
 print("Data processed. Start training.")
     
 #################################################################
 ################# Get Model and train ###########################
 #################################################################
+
+
 model = HFM(data, c_data, eqns, layers, Pec = 100, Rey = 100)
 model.train(traing_time, batch_size, lr, T_star, X_star, Y_star, C_star, U_star, V_star, P_star)
+    
+    
+    
     
 #################################################################
 ##################### Save Predictions  #########################

@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 import math
 from scipy.interpolate import griddata
 from mpl_toolkits.axes_grid1 import make_axes_locatable
-
+import sys
 font = {'size'   : 22}
 matplotlib.rc('font', **font)
 
@@ -20,7 +20,7 @@ def nnan_count(a):
     return len(a[0,:])* len(a[:,0]) - k
 
 # X_star -> x,y
-def plot_surface_griddata_flower(X_star, u_star, tit, ax):
+def plot_surface_griddata_flower(X_star, u_star, tit, ax, vmin, vmax):
     print("get " + tit + 'plot')
     n_x = 250
     n_y = 250
@@ -60,7 +60,7 @@ def plot_surface_griddata_flower(X_star, u_star, tit, ax):
     Uplot = griddata(X_star, u_star, (Xplot,Yplot))
     
     # plot heap map
-    H = ax.pcolormesh(Xplot, Yplot, (flags*Uplot), shading='gouraud', cmap = 'jet')
+    H = ax.pcolormesh(Xplot, Yplot, (flags*Uplot), shading='gouraud', cmap = 'jet', vmin=vmin, vmax=vmax)
     
     divider = make_axes_locatable(ax)
     cax = divider.append_axes('right', size='5%', pad=0.1)
@@ -82,7 +82,7 @@ def plot_surface_griddata_flower(X_star, u_star, tit, ax):
     
     
 data = scipy.io.loadmat("../Data/Cylinder2D_flower.mat")
-name = "Cylinder2D_flower_results_201_15000_01_01_2021_v1"
+name = "Cylinder2D_flower_results_201_15000_17_01_2021_v10"
 print("Ploting " + name)
 results = scipy.io.loadmat("../Results/" + name + ".mat")
 
@@ -108,26 +108,26 @@ xy_star = np.concatenate((x_star,y_star), axis = 1)
 plt.clf
 fig, ax = plt.subplots(2, 4, figsize= [40, 20])
 
-for num in range(0, 1):
-    print(num)
+for num in range(136, 137):
+    #print(num)
     plt.clf
     axes = plt.gca()
     
     # c(t,x,y)
-    plot_surface_griddata_flower(xy_star, C_star[:,num],'Reference $c(t,x,y)$', ax[0,0])
-    plot_surface_griddata_flower(xy_star, C_pred[:,num],'Regressed $c(t,x,y)$', ax[0,1])
+    plot_surface_griddata_flower(xy_star, C_star[:,num],'Reference $c(t,x,y)$', ax[0,0], 0.5, 1)
+    plot_surface_griddata_flower(xy_star, C_pred[:,num],'Regressed $c(t,x,y)$', ax[0,1], 0.5, 1)
     
     # u(t,x,y)
-    plot_surface_griddata_flower(xy_star, U_star[:,num],'Reference $u(t,x,y)$', ax[0,2])
-    plot_surface_griddata_flower(xy_star, U_pred[:,num],'Regressed $u(t,x,y)$', ax[0,3])
+    plot_surface_griddata_flower(xy_star, U_star[:,num],'Reference $u(t,x,y)$', ax[0,2], -0.2, 1.2)
+    plot_surface_griddata_flower(xy_star, U_pred[:,num],'Regressed $u(t,x,y)$', ax[0,3], -0.2, 1.2)
     
     # v(t,x,y)
-    plot_surface_griddata_flower(xy_star, V_star[:,num],'Reference $v(t,x,y)$', ax[1,0])
-    plot_surface_griddata_flower(xy_star, V_pred[:,num],'Regressed $v(t,x,y)$', ax[1,1])
+    plot_surface_griddata_flower(xy_star, V_star[:,num],'Reference $v(t,x,y)$', ax[1,0], -0.5, 0.6)
+    plot_surface_griddata_flower(xy_star, V_pred[:,num],'Regressed $v(t,x,y)$', ax[1,1], -0.5, 0.6)
 
     # p(t,x,y)
-    plot_surface_griddata_flower(xy_star, P_star[:,num],'Reference $p(t,x,y)$', ax[1,2])
-    plot_surface_griddata_flower(xy_star, P_pred[:,num],'Regressed $p(t,x,y)$', ax[1,3])
+    plot_surface_griddata_flower(xy_star, P_star[:,num],'Reference $p(t,x,y)$', ax[1,2], -0.5, 0.1)
+    plot_surface_griddata_flower(xy_star, P_pred[:,num],'Regressed $p(t,x,y)$', ax[1,3], -0.5, 0.1)
 
     fig.tight_layout()
 
@@ -182,12 +182,19 @@ def running_mean(x, N):
     cumsum = np.cumsum(np.insert(x, 0, 0))
     return (cumsum[N:] - cumsum[:-N]) / float(N)
 
-def semilogy_color(x, ax):
-    l = ax.semilogy(running_mean(x, 500))
+def semilogy_color(x, ax, mean = True):
+    if mean:
+        l = ax.semilogy(running_mean(x, 500))
+    else:
+        l = ax.semilogy(x)
     return l[0].get_color()
 
-def plot_error(ax, title, loss, c):
-    l = ax.semilogy(running_mean(loss, 500))
+def plot_error(ax, title, loss, c, mean = True):
+    if mean:
+        l = ax.semilogy(running_mean(loss, 500))
+    else:
+        l = ax.semilogy(loss)
+    
     l[0].set_color(c)
     ax.xaxis.label.set_size(20)
     ax.yaxis.label.set_size(20)
@@ -197,7 +204,10 @@ def plot_error(ax, title, loss, c):
     ax.xaxis.label.set_size(20)
     ax.xaxis.label.set_size(20)
 
-name = "Cylinder2D_flower_training_error_v4"
+version = sys.argv[1]
+use_mean = (sys.argv[2] == 't')
+
+name = "Cylinder2D_flower_training_error_" + version
 print("Getting training error of " + name + "...")
 #load data
 
@@ -209,9 +219,14 @@ e2_loss = np.array(errors['e2_loss'])
 e3_loss = np.array(errors['e3_loss'])
 e4_loss = np.array(errors['e4_loss'])
 
+error_c = np.array(errors['error_c'])[0]
+error_u = np.array(errors['error_u'])[0]
+error_v = np.array(errors['error_v'])[0]
+error_p = np.array(errors['error_p'])[0]
+
 # get plot
 plt.clf
-fig, ax = plt.subplots(2, 4, figsize = [40, 20])
+fig, ax = plt.subplots(3, 4, figsize = [40, 20])
 
 # subplot 1: plot all losses in the same plot
 ax[0,0].set_title("Losses",fontsize=30)
@@ -234,9 +249,25 @@ plot_error(ax[1,0], 'Loss $e2(t,x,y)$', e2_loss, c4)
 plot_error(ax[1,1], 'Loss $e3(t,x,y)$', e3_loss, c5)
 plot_error(ax[1,2], 'Loss $e4(t,x,y)$', e4_loss, c6)
 
+
+
+# subplot 8: plot all losses in the same plot
+ax[1,3].set_title("Errors",fontsize=30)
+ax[1,3].set_xlabel('Iteration',fontsize=20)
+ax[1,3].set_ylabel('L2 Error',fontsize=20)
+ax[1,3].xaxis.label.set_size(20)
+ax[1,3].yaxis.label.set_size(20)
+c1 = semilogy_color(error_c, ax[1,3], use_mean)
+c2 = semilogy_color(error_u, ax[1,3], use_mean)
+c3 = semilogy_color(error_v, ax[1,3], use_mean)
+c4 = semilogy_color(error_p, ax[1,3], use_mean)
+
+plot_error(ax[2,0], 'Error c', error_c, c1, use_mean)
+plot_error(ax[2,1], 'Error u', error_u, c2, use_mean)
+plot_error(ax[2,2], 'Error v', error_v, c3, use_mean)
+plot_error(ax[2,3], 'Error p', error_p, c4, use_mean)
+
 fig.tight_layout()
-
-
 plt.savefig("../Results/" + name + "_plot.png")
 
 

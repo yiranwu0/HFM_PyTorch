@@ -14,7 +14,6 @@ import torch.nn.utils.weight_norm as weight_norm
 from torch.autograd import Variable
 loss = nn.MSELoss()
 
-
 def relative_error(pred, exact):
     if type(pred) is np.ndarray:
         return np.sqrt( mean_squared_error(pred, exact)/np.mean(np.square(exact - np.mean(exact))))
@@ -47,19 +46,22 @@ class neural_net(nn.Module):
             self.X_mean = self.X_mean.to(device)
             self.X_std = self.X_std.to(device)
         
+        self.num_layers = len(layer_dim)
         temp = []
-        for l in range(1, len(layer_dim)):
-            temp.append(nn.Linear(layer_dim[l-1], layer_dim[l]))
-            #temp.append(weight_norm(nn.Linear(layer_dim[l-1], layer_dim[l]), dim = 0))
-            #nn.init.normal_(temp[l-1].weight)
+        for l in range(1, self.num_layers):
+            temp.append(weight_norm(nn.Linear(layer_dim[l-1], layer_dim[l]), dim = 0))
+            nn.init.normal_(temp[l-1].weight)
         self.layers = nn.ModuleList(temp)
+        
         #print(self.layers)
         #sys.stdout.flush()
         
     def forward(self, x):
-        #x = ((x - self.X_mean) / self.X_std) # z-score norm
-        for l in self.layers:
-            x = swish(l(x))
+        x = ((x - self.X_mean) / self.X_std) # z-score norm
+        for i in range(0, self.num_layers-1):
+            x = self.layers[i](x)
+            if i < self.num_layers-2:
+                x = swish(x)
         return x
 
 
@@ -104,6 +106,10 @@ def Navier_Stokes_2D(c, u, v, p, txy, Pec, Rey):
     
     return e1, e2, e3, e4
 
+
+
+###############################
+# Parts below are not tested
 
 
 # can be done: improved version to return [u_x, v_x, u_y, v_y] directly from Navier_Stokes_2D
