@@ -14,8 +14,8 @@ Right now only utilities.py and Cylinder2D_flower_systematic.py are presented.
 ## Notes: 
 The results are in Results folder. Comparing to the original code, this version is less accurate. 
 However, further training can be done by using a smaller learning rate to achieve better error rate. 
-An learning rate of 1e-3 (used in the original code) is prone to overfitting and the results are bad. 
-An learning rate of 1e-4 (showed in results)can have similar results comparing to the original paper.
+A learning rate of 1e-3 (used in the original code) is prone to overfitting and the results are bad. 
+A learning rate of 1e-4 (showed in results)can have similar results comparing to the original paper.
 
 ## To train:
 - download data and place it into a Data folder.
