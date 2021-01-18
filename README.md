@@ -1,16 +1,15 @@
 # HFM_PyTorch
 An alternate version of HFM code with PyTorch. 
 Right now only utilities.py and Cylinder2D_flower_systematic.py are presented.
+
+- Original Repository is [Hidden Fluid Mechanics](https://github.com/maziarraissi/HFM).
+- Original [Paper](https://science.sciencemag.org/content/367/6481/1026.abstract)
+- Original [Data and Figures](https://bit.ly/2NRB65U)
+
 ## Additional files
 - DataManager.py: to save training loss and errors during training.
 - test.py: to test the results. 
 - plot.py: to plot the results.
-
-Original Repository is [Hidden Fluid Mechanics](https://github.com/maziarraissi/HFM).
-
-Original [Paper](https://science.sciencemag.org/content/367/6481/1026.abstract)
-
-Original [Data and Figures](https://bit.ly/2NRB65U)
 
 ## Notes: 
 The results are in Results folder. Comparing to the original code, this version is less accurate. 
