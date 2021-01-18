@@ -29,4 +29,4 @@ An learning rate of 1e-4 (showed in results)can have similar results comparing t
 
 ## To plot: 
 - You should have related files in Results folder.
-```python plot.py v10
+```python plot.py v10```
