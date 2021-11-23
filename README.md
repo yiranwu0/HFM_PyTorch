@@ -12,7 +12,7 @@ Right now only utilities.py and Cylinder2D_flower_systematic.py are presented.
 - plot.py: to plot the results.
 
 ## Notes: 
-The results are in Results folder. Comparing to the original code, this version is less accurate.    
+The results are in Results folder. Comparing to the original code, this error rate of this version is a bit higher.    
 However, further training can be done by using a smaller learning rate to achieve better error rate.   
 A learning rate of 1e-3 (used in the original code) is prone to overfitting and the results are bad.    
 A learning rate of 1e-4 (showed in results)can have similar results comparing to the original paper.   
